@@ -1,44 +1,48 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
 public class UserService {
+    public static final String FILE_NOT_FOUND = "Нет созданного файлы";
+    public static final String FILE_CANT_BE_CREATED = "Не удалось создать файл!";
     private String filePath = "";
-    private LinkedList<User> userList = new LinkedList();
+    private final LinkedList<User> userList = new LinkedList();
     private final LoggerController LOGGER = new LoggerController(Logger.getGlobal());
+    private final Repository repository = new Repository();
 
     public boolean fileExist(){
-        return filePath.length() != 0 && new File(filePath).exists();
+        return repository.fileExist(filePath);
     }
     public boolean fileExist(String path){
-        return path.length() != 0 && new File(path).exists();
+        return repository.fileExist(path);
     }
 
-    public ExecuteAnswer search() {
+    public void search() {
         throw new UnsupportedOperationException();
     }
 
-    public ExecuteAnswer saveFileAs() {
+    public void saveFileAs(String path) {
+        repository.saveUserToFile(path, userList);
+    }
+
+    public void saveFile() {
+        repository.saveUserToFile(filePath, userList);
+    }
+
+    public void removeUser() {
         throw new UnsupportedOperationException();
     }
 
-    public ExecuteAnswer saveFile() {
+    public void loadFile() {
         throw new UnsupportedOperationException();
     }
 
-    public ExecuteAnswer removeUser() {
-        throw new UnsupportedOperationException();
-    }
-
-    public ExecuteAnswer loadFile() {
-        throw new UnsupportedOperationException();
-    }
-
-    public ExecuteAnswer newFile(String filePath) {
-        if (fileExist(filePath)){
-            return new ExecuteAnswer(false, "Не удалось создать файл, файл с таким имене уже существует.");
-        }
+    public void newFile(String filePath) throws Exception {
+        // if (fileExist(filePath)){
+        //    return new ExecuteAnswer(false, "Не удалось создать файл, файл с таким имене уже существует.");
+        // }
 
         File file = new File(filePath);
 
@@ -53,17 +57,19 @@ public class UserService {
 
         if(isFileCreated){
             this.filePath = filePath;
-            return new ExecuteAnswer(true, "Файл успешно создан.");
         }
         else{
-            return new ExecuteAnswer(false, "Не удалось создать файл.");
+            Exception e = new IllegalStateException(FILE_CANT_BE_CREATED);
+            LOGGER.logIt(e);
         }
     }
 
-    public ExecuteAnswer addUser(String fio, int age, String phone, String sex, String address) {
+    public void addUser(String fio, int age, String phone, String sex, String address) throws Exception {
 
-        if (!fileExist()){
-            return new ExecuteAnswer(false, "Нет открытого файла");
+        if (fileExist()){
+            Exception e = new FileNotFoundException(FILE_NOT_FOUND);
+            LOGGER.logIt(e);
+            return;
         }
 
         try {
@@ -71,10 +77,7 @@ public class UserService {
         }
         catch(Exception e){
             LOGGER.logIt(e.toString(), e);
-            return new ExecuteAnswer(false, "Не получилось добавить запись.");
         }
-
-        return new ExecuteAnswer(true, "Запись успешно добавлена.");
     }
 
     public Integer tryReadAge(String ageStr) {
@@ -97,22 +100,3 @@ public class UserService {
     }
 }
 
-class LoggerController{
-    private final Logger LOGGER;
-    private int exceptionCount = 0;
-
-    public LoggerController(Logger LOGGER) {
-        this.LOGGER = LOGGER;
-    }
-    public void logIt(String message, Exception e){
-        // idea сказала так сделать
-        int MAX_EXCEPTION_COUNT = 30;
-
-        LOGGER.info(String.format("%s Exception: %s", message, e.toString()));
-        exceptionCount++;
-
-        if (exceptionCount > MAX_EXCEPTION_COUNT){
-            throw new RuntimeException("Превышен лимит исключений".concat(LOGGER.toString()));
-        }
-    }
-}

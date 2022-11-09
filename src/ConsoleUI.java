@@ -1,56 +1,66 @@
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ConsoleUI {
     private final UserService userService;
     private final Scanner scanner = new Scanner(System.in);
+    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal());
 
     public ConsoleUI(UserService userService) {
         this.userService = userService;
     }
 
-    public void start(){
+    public void start() throws Exception {
         while (printMenu());
     }
 
-    public boolean printMenu(){
+    public boolean printMenu() throws Exception {
         System.out.printf("Введите команду (%s – %s)%n", Command.HELP ,UIUtils.HELP_DESCRIPTION);
         System.out.print("> ");
-        ExecuteAnswer executeAnswer = execute(Command.valueOf(scanner.nextLine()));
 
-        if (!executeAnswer.isExecutable()){
-            System.out.println(executeAnswer.getMessage());
-            System.out.println();
+        Command command;
+        try {
+            command = Command.valueOf(scanner.nextLine().toUpperCase());
+        }
+        catch(NoSuchElementException | IllegalStateException e){
+            LOGGER.logIt("Scanner exception", e);
+            return true;
+        }
+        catch (IllegalArgumentException e){
+            LOGGER.logIt(e);
+            return true;
         }
 
-        return !executeAnswer.isExit;
+        return execute(command);
     }
 
-    private ExecuteAnswer execute(Command command) {
+    private boolean execute(Command command) throws Exception {
 
         switch (command){
             case EXIT:
-                return new ExecuteAnswer(true, "Выполнена команда EXIT", true);
+                return false;
             case ADDUSER:
-                ExecuteAnswer executeAnswer = addUser();
-                return executeAnswer;
+                addUser();
+                break;
             case HELP :
                 help();
-                return new ExecuteAnswer(true, "Выполнена команда HELP");
+                break;
             case NEWFILE:
-                return newFile();
+                newFile();
+                break;
+            case SAVEFILEAS:
+                saveFileAs();
+                break;
+            case SAVEFILE:
+                saveFile();
+                break;
                 /*
             case LOADFILE:
                 loadFile();
                 return;
             case REMOVEUSER:
                 removeUser();
-                return;
-            case SAVEFILE:
-                saveFile();
-                return;
-            case SAVEFILEAS:
-                saveFileAs();
                 return;
             case SEARCH:
                 search();
@@ -60,6 +70,38 @@ public class ConsoleUI {
             default:
                 throw new IllegalStateException("Unexpected value: " + command);
         }
+
+        return true;
+    }
+
+    private void saveFile() {
+        if (userService.fileExist()) {
+            System.out.println("Файл не был найден!");
+            saveFileAs();
+        }
+
+        userService.saveFile();
+    }
+
+    private void saveFileAs() {
+        System.out.println("Введите путь к файлу");
+        System.out.println("> ");
+        String path = scanner.nextLine();
+
+        if (userService.fileExist(path)){
+            System.out.println("Такой файл уже существует!");
+            if (askUser("Желаете перезаписать файл?")){
+                userService.saveFileAs(path);
+            }
+        }
+    }
+
+    private boolean askUser(String s) {
+        System.out.println(s);
+        System.out.println("1) Y - да");
+        System.out.println("2) N - нет");
+
+        return scanner.nextLine().equals("Y") || scanner.nextLine().equals("1");
     }
 
     private void help(){
@@ -68,9 +110,11 @@ public class ConsoleUI {
         System.out.println();
     }
 
-    private ExecuteAnswer addUser(){
-        if (!userService.fileExist()){
-            return new ExecuteAnswer(false, "Нет открытого файла");
+    private void addUser() throws Exception {
+        if (userService.fileExist()){
+            Exception e = new IllegalStateException("Нет открытого файла");
+            LOGGER.logIt(e);
+            return;
         }
 
         System.out.println("Введите имя");
@@ -98,13 +142,13 @@ public class ConsoleUI {
         System.out.print("> ");
         String address = scanner.nextLine();
 
-        return userService.addUser(fio, age, phone, sex, address);
+        userService.addUser(fio, age, phone, sex, address);
     }
 
-    private ExecuteAnswer newFile(){
+    private void newFile() throws Exception {
         System.out.println("Введите путь к файлу целиком, или имя файла, который будет создан в том же каталоге, что и данная программа");
         System.out.print("> ");
-        return userService.newFile(scanner.nextLine());
+        userService.newFile(scanner.nextLine());
     }
 
     private String commandsMapToString(){
