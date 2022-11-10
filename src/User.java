@@ -12,5 +12,14 @@ public class User {
         Sex = sex;
         Address = address;
     }
+
+    @Override
+    public String toString() {
+        return FIO + '\n' +
+               Age + '\n'+
+               Phone + '\n' +
+               Sex + '\n' +
+               Address + '\n';
+    }
 }
 

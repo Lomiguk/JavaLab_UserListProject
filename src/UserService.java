@@ -8,8 +8,9 @@ public class UserService {
     public static final String FILE_NOT_FOUND = "Нет созданного файлы";
     public static final String FILE_CANT_BE_CREATED = "Не удалось создать файл!";
     private String filePath = "";
-    private final LinkedList<User> userList = new LinkedList();
-    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal());
+    // How to make final??
+    private LinkedList<User> userList = new LinkedList();
+    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
     private final Repository repository = new Repository();
 
     public boolean fileExist(){
@@ -35,8 +36,9 @@ public class UserService {
         throw new UnsupportedOperationException();
     }
 
-    public void loadFile() {
+    public void loadFile(String path) {
         throw new UnsupportedOperationException();
+        //userList = repository.loadFile(path);
     }
 
     public void newFile(String filePath) throws Exception {
@@ -66,7 +68,7 @@ public class UserService {
 
     public void addUser(String fio, int age, String phone, String sex, String address) throws Exception {
 
-        if (fileExist()){
+        if (!fileExist()){
             Exception e = new FileNotFoundException(FILE_NOT_FOUND);
             LOGGER.logIt(e);
             return;

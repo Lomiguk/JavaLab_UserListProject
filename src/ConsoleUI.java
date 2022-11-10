@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 public class ConsoleUI {
     private final UserService userService;
     private final Scanner scanner = new Scanner(System.in);
-    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal());
+    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
 
     public ConsoleUI(UserService userService) {
         this.userService = userService;
@@ -21,7 +21,7 @@ public class ConsoleUI {
 
         Command command;
         try {
-            command = Command.valueOf(scanner.nextLine().toUpperCase());
+            command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
         }
         catch(NoSuchElementException | IllegalStateException e){
             LOGGER.logIt("Scanner exception", e);
@@ -55,10 +55,10 @@ public class ConsoleUI {
             case SAVEFILE:
                 saveFile();
                 break;
-                /*
             case LOADFILE:
                 loadFile();
-                return;
+                break;
+                /*
             case REMOVEUSER:
                 removeUser();
                 return;
@@ -74,8 +74,14 @@ public class ConsoleUI {
         return true;
     }
 
+    private void loadFile() {
+        System.out.println("Введите путь к файлу");
+        System.out.println("> ");
+        userService.loadFile(scanner.nextLine().trim());
+    }
+
     private void saveFile() {
-        if (userService.fileExist()) {
+        if (!userService.fileExist()) {
             System.out.println("Файл не был найден!");
             saveFileAs();
         }
@@ -85,10 +91,10 @@ public class ConsoleUI {
 
     private void saveFileAs() {
         System.out.println("Введите путь к файлу");
-        System.out.println("> ");
-        String path = scanner.nextLine();
+        System.out.print("> ");
+        String path = scanner.nextLine().trim();
 
-        if (userService.fileExist(path)){
+        if (!userService.fileExist(path)){
             System.out.println("Такой файл уже существует!");
             if (askUser("Желаете перезаписать файл?")){
                 userService.saveFileAs(path);
@@ -111,7 +117,7 @@ public class ConsoleUI {
     }
 
     private void addUser() throws Exception {
-        if (userService.fileExist()){
+        if (!userService.fileExist()){
             Exception e = new IllegalStateException("Нет открытого файла");
             LOGGER.logIt(e);
             return;
@@ -119,28 +125,28 @@ public class ConsoleUI {
 
         System.out.println("Введите имя");
         System.out.print("> ");
-        String fio = scanner.nextLine();
+        String fio = scanner.nextLine().trim();
 
         System.out.println("Введите возраст");
         Integer age = null;
         while (age == null){
             System.out.print("> ");
-            age = userService.tryReadAge(scanner.nextLine());
+            age = userService.tryReadAge(scanner.nextLine().trim());
         }
 
         System.out.println("Введите номер телефона");
         System.out.print("> ");
-        String phone = scanner.nextLine();
+        String phone = scanner.nextLine().trim();
 
         System.out.println("Выберите пол");
         System.out.println("1) MALE");
         System.out.println("2) FEMALE");
         System.out.print("> ");
-        String sex = scanner.nextLine();
+        String sex = scanner.nextLine().toUpperCase().trim();
 
         System.out.println("Введите адрес");
         System.out.print("> ");
-        String address = scanner.nextLine();
+        String address = scanner.nextLine().trim();
 
         userService.addUser(fio, age, phone, sex, address);
     }
@@ -148,7 +154,7 @@ public class ConsoleUI {
     private void newFile() throws Exception {
         System.out.println("Введите путь к файлу целиком, или имя файла, который будет создан в том же каталоге, что и данная программа");
         System.out.print("> ");
-        userService.newFile(scanner.nextLine());
+        userService.newFile(scanner.nextLine().trim());
     }
 
     private String commandsMapToString(){
