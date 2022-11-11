@@ -1,8 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
@@ -12,12 +10,12 @@ public class UserService {
     private String filePath = "";
 
     // How to make final??
-    private LinkedList<User> userList = new LinkedList();
+    private LinkedList<User> userList = new LinkedList<>();
     private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
     private final Repository repository = new Repository();
 
-    public boolean fileExist(){
-        return repository.fileExist(filePath);
+    public boolean fileNotExist(){
+        return !repository.fileExist(filePath);
     }
     public boolean fileExist(String path){
         return repository.fileExist(path);
@@ -90,7 +88,7 @@ public class UserService {
     }
 
     public void removeUser(String s) {
-        throw new UnsupportedOperationException();
+        userList.removeIf(user -> user.getFIO().equalsIgnoreCase(s));
     }
 
     public boolean loadFile(String path) {
@@ -105,11 +103,7 @@ public class UserService {
         }
     }
 
-    public boolean newFile(String filePath) throws Exception {
-        // if (fileExist(filePath)){
-        //    return new ExecuteAnswer(false, "Не удалось создать файл, файл с таким имене уже существует.");
-        // }
-
+    public boolean newFile(String filePath){
         File file = new File(filePath);
 
         boolean isFileCreated = false;
@@ -132,9 +126,9 @@ public class UserService {
         return isFileCreated;
     }
 
-    public boolean addUser(String fio, int age, String phone, String sex, String address) throws Exception {
+    public boolean addUser(String fio, int age, String phone, String sex, String address){
 
-        if (!fileExist()){
+        if (fileNotExist()){
             Exception e = new FileNotFoundException(FILE_NOT_FOUND);
             LOGGER.logIt(e);
             return false;
@@ -150,7 +144,7 @@ public class UserService {
     }
 
     public Integer tryReadAge(String ageStr) {
-        Integer ageInt = null;
+        int ageInt;
         try {
             ageInt = Integer.parseInt(ageStr);
 

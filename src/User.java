@@ -1,9 +1,9 @@
 public class User {
-    private String  FIO;
-    private Integer Age;
-    private String Phone;
-    private Sex Sex;
-    private String Address;
+    private final String  FIO;
+    private final Integer Age;
+    private final String Phone;
+    private final Sex Sex;
+    private final String Address;
 
     public User(String FIO, Integer age, String phone, Sex sex, String address) {
         this.FIO = FIO;

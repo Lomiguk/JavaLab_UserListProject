@@ -71,7 +71,7 @@ public class ConsoleUI {
     }
 
     private void search() {
-        if(!checkFileExist()) return;
+        if(checkFileNotExist()) return;
 
         System.out.println("На основе какого параметра вы желаете осуществить поиск?");
         System.out.println("1) Имя (используйте команду NAME)");
@@ -117,10 +117,11 @@ public class ConsoleUI {
     }
 
     private void removeUser() {
-        if(!checkFileExist()) return;
+        if(checkFileNotExist()) return;
 
         System.out.println("Введите имя пользователя, которого хотите удалить");
         System.out.print("> ");
+
         userService.removeUser(scanner.nextLine());
     }
 
@@ -136,7 +137,7 @@ public class ConsoleUI {
     }
 
     private void saveFile() {
-        if (!userService.fileExist()) {
+        if (userService.fileNotExist()) {
             System.out.println("Файл не был найден!");
             saveFileAs();
         }
@@ -179,8 +180,8 @@ public class ConsoleUI {
         System.out.println();
     }
 
-    private void addUser() throws Exception {
-        if(!checkFileExist()) return;
+    private void addUser(){
+        if(checkFileNotExist()) return;
 
         System.out.println("Введите имя");
         System.out.print("> ");
@@ -215,7 +216,7 @@ public class ConsoleUI {
         }
     }
 
-    private void newFile() throws Exception {
+    private void newFile(){
         System.out.println("Введите путь к файлу целиком, или имя файла, который будет создан в том же каталоге, что и данная программа");
         System.out.print("> ");
         if(userService.newFile(scanner.nextLine().trim())){
@@ -233,12 +234,12 @@ public class ConsoleUI {
                 .collect(Collectors.joining(",\n"));
     }
 
-    private boolean checkFileExist(){
-        if (!userService.fileExist()){
+    private boolean checkFileNotExist(){
+        if (userService.fileNotExist()){
             LOGGER.logIt(new IllegalStateException("Нет открытого файла"));
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 }
 
