@@ -96,7 +96,7 @@ public class ConsoleUI {
             case NAME -> "Имя";
             case AGE -> "Возраст";
             case PHONE -> "Телефон";
-            case SEX -> String.format("Пол %s", String.join(" | ", Arrays.stream(Sex.values()).toArray(String[]::new)));
+            case SEX -> String.format("Пол %s", String.join(" | ", Arrays.stream(Sex.values()).map(Object::toString).toArray(String[]::new)));
             case ADDRESS -> "Адресс";
         };
 
