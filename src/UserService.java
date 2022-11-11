@@ -8,6 +8,7 @@ public class UserService {
     public static final String FILE_NOT_FOUND = "Нет созданного файлы";
     public static final String FILE_CANT_BE_CREATED = "Не удалось создать файл!";
     private String filePath = "";
+
     // How to make final??
     private LinkedList<User> userList = new LinkedList();
     private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
@@ -24,24 +25,31 @@ public class UserService {
         throw new UnsupportedOperationException();
     }
 
-    public void saveFileAs(String path) {
-        repository.saveUserToFile(path, userList);
+    public boolean saveFileAs(String path) {
+        return repository.saveUserToFile(userList,path);
     }
 
-    public void saveFile() {
-        repository.saveUserToFile(filePath, userList);
+    public boolean saveFile() {
+        return repository.saveUserToFile(userList, filePath);
     }
 
     public void removeUser() {
         throw new UnsupportedOperationException();
     }
 
-    public void loadFile(String path) {
-        throw new UnsupportedOperationException();
-        //userList = repository.loadFile(path);
+    public boolean loadFile(String path) {
+        userList = repository.loadFile(path);
+        if (userList != null) {
+            this.filePath = path;
+            return true;
+        }
+        else {
+            this.filePath = "";
+            return false;
+        }
     }
 
-    public void newFile(String filePath) throws Exception {
+    public boolean newFile(String filePath) throws Exception {
         // if (fileExist(filePath)){
         //    return new ExecuteAnswer(false, "Не удалось создать файл, файл с таким имене уже существует.");
         // }
@@ -64,22 +72,25 @@ public class UserService {
             Exception e = new IllegalStateException(FILE_CANT_BE_CREATED);
             LOGGER.logIt(e);
         }
+
+        return isFileCreated;
     }
 
-    public void addUser(String fio, int age, String phone, String sex, String address) throws Exception {
+    public boolean addUser(String fio, int age, String phone, String sex, String address) throws Exception {
 
         if (!fileExist()){
             Exception e = new FileNotFoundException(FILE_NOT_FOUND);
             LOGGER.logIt(e);
-            return;
+            return false;
         }
 
         try {
-            userList.add(new User(fio, age, phone, Sex.valueOf(sex), address));
+            return userList.add(new User(fio, age, phone, Sex.valueOf(sex), address));
         }
         catch(Exception e){
             LOGGER.logIt(e.toString(), e);
         }
+        return false;
     }
 
     public Integer tryReadAge(String ageStr) {

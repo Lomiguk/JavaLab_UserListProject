@@ -15,11 +15,14 @@ public class User {
 
     @Override
     public String toString() {
-        return FIO + '\n' +
-               Age + '\n'+
-               Phone + '\n' +
-               Sex + '\n' +
-               Address + '\n';
+        String UserString = new StringBuilder()
+                .append(FIO).append("\r\n")
+                .append(Age).append("\r\n")
+                .append(Phone).append("\r\n")
+                .append(Sex).append("\r\n")
+                .append(Address).append("\r\n")
+                .toString();
+        return UserString;
     }
 }
 

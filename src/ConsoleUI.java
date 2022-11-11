@@ -76,8 +76,13 @@ public class ConsoleUI {
 
     private void loadFile() {
         System.out.println("Введите путь к файлу");
-        System.out.println("> ");
-        userService.loadFile(scanner.nextLine().trim());
+        System.out.print("> ");
+        if (userService.loadFile(scanner.nextLine().trim())){
+            System.out.println("Файл успешно загружен!");
+        }
+        else{
+            System.out.println("Не удалось загрузить файл!");
+        }
     }
 
     private void saveFile() {
@@ -86,7 +91,12 @@ public class ConsoleUI {
             saveFileAs();
         }
 
-        userService.saveFile();
+        if (userService.saveFile()){
+            System.out.println("Файл успешно сохранён!");
+        }
+        else {
+            System.out.println("Не удалось сохранить файл");
+        }
     }
 
     private void saveFileAs() {
@@ -94,11 +104,14 @@ public class ConsoleUI {
         System.out.print("> ");
         String path = scanner.nextLine().trim();
 
-        if (!userService.fileExist(path)){
-            System.out.println("Такой файл уже существует!");
-            if (askUser("Желаете перезаписать файл?")){
-                userService.saveFileAs(path);
-            }
+        if (!userService.fileExist(path)) return;
+        if (!askUser("Желаете перезаписать файл?")) return;
+
+        if (userService.saveFileAs(path)){
+            System.out.println("Файл успешно сохранён!");
+        }
+        else {
+            System.out.println("Не удалось сохранить файл");
         }
     }
 
@@ -148,13 +161,23 @@ public class ConsoleUI {
         System.out.print("> ");
         String address = scanner.nextLine().trim();
 
-        userService.addUser(fio, age, phone, sex, address);
+        if (userService.addUser(fio, age, phone, sex, address)){
+            System.out.println("Запись добавлена.");
+        }
+        else{
+            System.out.println("Не удалось добавить запись.");
+        }
     }
 
     private void newFile() throws Exception {
         System.out.println("Введите путь к файлу целиком, или имя файла, который будет создан в том же каталоге, что и данная программа");
         System.out.print("> ");
-        userService.newFile(scanner.nextLine().trim());
+        if(userService.newFile(scanner.nextLine().trim())){
+            System.out.println("Файл успешно создан.");
+        }
+        else {
+            System.out.println("Не удалось создать файл.");
+        }
     }
 
     private String commandsMapToString(){
