@@ -1,3 +1,3 @@
 public enum Sex {
-    MALE, FEMALE
+    FEMALE, MALE, OTHER
 }

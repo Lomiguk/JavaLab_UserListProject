@@ -24,5 +24,25 @@ public class User {
                 .toString();
         return UserString;
     }
+
+    public String getFIO() {
+        return FIO;
+    }
+
+    public Integer getAge() {
+        return Age;
+    }
+
+    public String getPhone() {
+        return Phone;
+    }
+
+    public Sex getSex() {
+        return Sex;
+    }
+
+    public String getAddress() {
+        return Address;
+    }
 }
 

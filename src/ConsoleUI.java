@@ -36,7 +36,6 @@ public class ConsoleUI {
     }
 
     private boolean execute(Command command) throws Exception {
-
         switch (command){
             case EXIT:
                 return false;
@@ -58,20 +57,71 @@ public class ConsoleUI {
             case LOADFILE:
                 loadFile();
                 break;
-                /*
             case REMOVEUSER:
                 removeUser();
-                return;
+                break;
             case SEARCH:
                 search();
-                return;
-
-                 */
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + command);
         }
 
         return true;
+    }
+
+    private void search() {
+        if(!checkFileExist()) return;
+
+        System.out.println("На основе какого параметра вы желаете осуществить поиск?");
+        System.out.println("1) Имя (используйте команду NAME)");
+        System.out.println("2) Возраст (используйте команду AGE)");
+        System.out.println("3) Телефон (используйте команду PHONE)");
+        System.out.println("4) Пол (используйте команду SEX)");
+        System.out.println("5) Адресс (используйте команду ADDRESS)");
+        System.out.print("> ");
+
+        Category category = Category.NAME;
+        try {
+            category = Category.valueOf(scanner.nextLine().trim().toUpperCase());
+        }
+        catch(NoSuchElementException | IllegalStateException e){
+            LOGGER.logIt("Scanner exception", e);
+        }
+        catch (IllegalArgumentException e){
+            LOGGER.logIt(e);
+        }
+
+        String categoryStr = switch (category) {
+            case NAME -> "Имя";
+            case AGE -> "Возраст";
+            case PHONE -> "Телефон";
+            case SEX -> String.format("Пол %s", String.join(" | ", Arrays.stream(Sex.values()).toArray(String[]::new)));
+            case ADDRESS -> "Адресс";
+        };
+
+        System.out.printf("Введите %s%n", categoryStr);
+        System.out.print("> ");
+
+        Object[] searchedUsers = userService.search(category, scanner.nextLine().toUpperCase());
+
+        if (searchedUsers == null || searchedUsers.length == 0){
+            System.out.println("Не было найдено совпадений.");
+        }
+        else{
+            for (Object user: searchedUsers) {
+                System.out.println(user.toString());
+                System.out.println();
+            }
+        }
+    }
+
+    private void removeUser() {
+        if(!checkFileExist()) return;
+
+        System.out.println("Введите имя пользователя, которого хотите удалить");
+        System.out.print("> ");
+        userService.removeUser(scanner.nextLine());
     }
 
     private void loadFile() {
@@ -130,11 +180,7 @@ public class ConsoleUI {
     }
 
     private void addUser() throws Exception {
-        if (!userService.fileExist()){
-            Exception e = new IllegalStateException("Нет открытого файла");
-            LOGGER.logIt(e);
-            return;
-        }
+        if(!checkFileExist()) return;
 
         System.out.println("Введите имя");
         System.out.print("> ");
@@ -185,6 +231,14 @@ public class ConsoleUI {
                 .stream()
                 .map(commandStringEntry -> String.format("Используйте %s для %s", commandStringEntry.getKey(), commandStringEntry.getValue()))
                 .collect(Collectors.joining(",\n"));
+    }
+
+    private boolean checkFileExist(){
+        if (!userService.fileExist()){
+            LOGGER.logIt(new IllegalStateException("Нет открытого файла"));
+            return false;
+        }
+        return true;
     }
 }
 

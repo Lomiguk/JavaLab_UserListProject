@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
@@ -21,8 +23,62 @@ public class UserService {
         return repository.fileExist(path);
     }
 
-    public void search() {
-        throw new UnsupportedOperationException();
+    public Object[] search(Category category, String s) {
+        return switch (category){
+            case NAME -> searchByName(s);
+            case AGE -> searchByAge(s);
+            case SEX -> searchBySex(s);
+            case PHONE -> searchByPhone(s);
+            case ADDRESS -> searchByAddress(s);
+        };
+    }
+
+    private Object[] searchByAddress(String inputAddress) {
+        return userList.stream()
+                .filter(user -> user.getAddress().equalsIgnoreCase(inputAddress.trim()))
+                .toArray();
+    }
+
+    private Object[] searchByPhone(String inputPhone) {
+        return userList.stream()
+                .filter(user -> user.getPhone().equalsIgnoreCase(inputPhone.trim()))
+                .toArray();
+    }
+
+    private Object[] searchBySex(String stringSex) {
+        Sex sex;
+        try{
+            sex = Sex.valueOf(stringSex.toUpperCase().trim());
+        }
+        catch(Exception e){
+            LOGGER.logIt(e);
+            return null;
+        }
+
+        return userList.stream()
+                .filter(user -> user.getSex().equals(sex))
+                .toArray();
+    }
+
+    private Object[] searchByAge(String stringAge) {
+        int age;
+        try {
+            age = Integer.parseInt(stringAge.trim());
+        }
+        catch (NumberFormatException e){
+            LOGGER.logIt(e);
+            return null;
+        }
+
+        return userList.stream()
+                .filter(user -> user.getAge().equals(age))
+                .toArray();
+    }
+
+    private Object[] searchByName(String name) {
+        return userList.stream()
+                .filter(user -> user.getFIO().equalsIgnoreCase(name.trim()))
+                .toArray();
     }
 
     public boolean saveFileAs(String path) {
@@ -33,7 +89,7 @@ public class UserService {
         return repository.saveUserToFile(userList, filePath);
     }
 
-    public void removeUser() {
+    public void removeUser(String s) {
         throw new UnsupportedOperationException();
     }
 
