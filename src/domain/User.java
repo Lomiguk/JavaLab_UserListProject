@@ -1,3 +1,5 @@
+package domain;
+
 public class User {
     private final String  FIO;
     private final Integer Age;

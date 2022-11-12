@@ -1,48 +1,69 @@
+package ui;
+
+import api.Command;
+import domain.Category;
+import domain.Sex;
+import exceptions.IncorrectInputValueException;
+import exceptions.NoneFileException;
+import logic.UserService;
+import utils.UIUtils;
+
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ConsoleUI {
     private final UserService userService;
     private final Scanner scanner = new Scanner(System.in);
-    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
+    private final Logger LOGGER = Logger.getLogger(ConsoleUI.class.getName());
+
+    private int errorsCount = 0;
+    private static final int MAX_ERRORS = 10;
 
     public ConsoleUI(UserService userService) {
         this.userService = userService;
     }
 
-    public void start() throws Exception {
-        while (printMenu());
-    }
+//    public void start() {
+//        execute();
+//    }
 
-    public boolean printMenu() throws Exception {
-        System.out.printf("Введите команду (%s – %s)%n", Command.HELP ,UIUtils.HELP_DESCRIPTION);
-        System.out.print("> ");
-
-        Command command;
+    public void start() {
         try {
-            command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
-        }
-        catch(NoSuchElementException | IllegalStateException e){
-            LOGGER.logIt("Scanner exception", e);
-            return true;
-        }
-        catch (IllegalArgumentException e){
-            LOGGER.logIt(e);
-            return true;
-        }
+            System.out.printf("Введите команду (%s – %s)%n", Command.HELP, UIUtils.HELP_DESCRIPTION);
+            System.out.print("> ");
 
-        return execute(command);
+            Command command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
+            while (command != Command.EXIT) {
+                runCommand(command);
+                command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
+            }
+        }catch (IllegalArgumentException e){
+            System.out.println("Неверная команда!");
+        }
+        catch (NoSuchElementException | IllegalStateException e){
+            System.out.println("Пустая строка!");
+        }
+        catch (NoneFileException e){
+            System.out.println("Файл не найден");
+        }
+        catch (Exception e) {
+            errorsCount++;
+            if (errorsCount >= MAX_ERRORS) {
+                throw new RuntimeException("Goodbye");
+            }
+        }
     }
 
-    private boolean execute(Command command) throws Exception {
-        switch (command){
+    private void runCommand(Command command) throws NoneFileException{
+        switch (command) {
             case EXIT:
-                return false;
+                break;
             case ADDUSER:
                 addUser();
                 break;
-            case HELP :
+            case HELP:
                 help();
                 break;
             case NEWFILE:
@@ -66,12 +87,10 @@ public class ConsoleUI {
             default:
                 throw new IllegalStateException("Unexpected value: " + command);
         }
-
-        return true;
     }
 
     private void search() {
-        if(checkFileNotExist()) return;
+        if (userService.fileNotExist()) return;
 
         System.out.println("На основе какого параметра вы желаете осуществить поиск?");
         System.out.println("1) Имя (используйте команду NAME)");
@@ -84,19 +103,16 @@ public class ConsoleUI {
         Category category = Category.NAME;
         try {
             category = Category.valueOf(scanner.nextLine().trim().toUpperCase());
-        }
-        catch(NoSuchElementException | IllegalStateException e){
-            LOGGER.logIt("Scanner exception", e);
-        }
-        catch (IllegalArgumentException e){
-            LOGGER.logIt(e);
+        } catch (NoSuchElementException | IllegalStateException e) {
+            LOGGER.log(Level.WARNING, "", e);
         }
 
         String categoryStr = switch (category) {
             case NAME -> "Имя";
             case AGE -> "Возраст";
             case PHONE -> "Телефон";
-            case SEX -> String.format("Пол %s", String.join(" | ", Arrays.stream(Sex.values()).map(Object::toString).toArray(String[]::new)));
+            case SEX ->
+                    String.format("Пол %s", String.join(" | ", Arrays.stream(Sex.values()).map(Object::toString).toArray(String[]::new)));
             case ADDRESS -> "Адресс";
         };
 
@@ -105,11 +121,10 @@ public class ConsoleUI {
 
         Object[] searchedUsers = userService.search(category, scanner.nextLine().toUpperCase());
 
-        if (searchedUsers == null || searchedUsers.length == 0){
+        if (searchedUsers == null || searchedUsers.length == 0) {
             System.out.println("Не было найдено совпадений.");
-        }
-        else{
-            for (Object user: searchedUsers) {
+        } else {
+            for (Object user : searchedUsers) {
                 System.out.println(user.toString());
                 System.out.println();
             }
@@ -117,7 +132,7 @@ public class ConsoleUI {
     }
 
     private void removeUser() {
-        if(checkFileNotExist()) return;
+        if (userService.fileNotExist()) return;
 
         System.out.println("Введите имя пользователя, которого хотите удалить");
         System.out.print("> ");
@@ -128,10 +143,9 @@ public class ConsoleUI {
     private void loadFile() {
         System.out.println("Введите путь к файлу");
         System.out.print("> ");
-        if (userService.loadFile(scanner.nextLine().trim())){
+        if (userService.loadFile(scanner.nextLine().trim())) {
             System.out.println("Файл успешно загружен!");
-        }
-        else{
+        } else {
             System.out.println("Не удалось загрузить файл!");
         }
     }
@@ -142,10 +156,9 @@ public class ConsoleUI {
             saveFileAs();
         }
 
-        if (userService.saveFile()){
+        if (userService.saveFile()) {
             System.out.println("Файл успешно сохранён!");
-        }
-        else {
+        } else {
             System.out.println("Не удалось сохранить файл");
         }
     }
@@ -158,10 +171,9 @@ public class ConsoleUI {
         if (!userService.fileExist(path)) return;
         if (!askUser("Желаете перезаписать файл?")) return;
 
-        if (userService.saveFileAs(path)){
+        if (userService.saveFileAs(path)) {
             System.out.println("Файл успешно сохранён!");
-        }
-        else {
+        } else {
             System.out.println("Не удалось сохранить файл");
         }
     }
@@ -174,14 +186,14 @@ public class ConsoleUI {
         return scanner.nextLine().equals("Y") || scanner.nextLine().equals("1");
     }
 
-    private void help(){
+    private void help() {
         System.out.println();
         System.out.println(commandsMapToString());
         System.out.println();
     }
 
-    private void addUser(){
-        if(checkFileNotExist()) return;
+    private void addUser() throws NoneFileException {
+        if (userService.fileNotExist()) return;
 
         System.out.println("Введите имя");
         System.out.print("> ");
@@ -189,9 +201,14 @@ public class ConsoleUI {
 
         System.out.println("Введите возраст");
         Integer age = null;
-        while (age == null){
+        while (age == null) {
             System.out.print("> ");
-            age = userService.tryReadAge(scanner.nextLine().trim());
+            try {
+                age = userService.tryReadAge(scanner.nextLine().trim());
+            } catch (IncorrectInputValueException e) {
+                age = null;
+            }
+
         }
 
         System.out.println("Введите номер телефона");
@@ -208,38 +225,28 @@ public class ConsoleUI {
         System.out.print("> ");
         String address = scanner.nextLine().trim();
 
-        if (userService.addUser(fio, age, phone, sex, address)){
+        if (userService.addUser(fio, age, phone, sex, address)) {
             System.out.println("Запись добавлена.");
-        }
-        else{
+        } else {
             System.out.println("Не удалось добавить запись.");
         }
     }
 
-    private void newFile(){
+    private void newFile() {
         System.out.println("Введите путь к файлу целиком, или имя файла, который будет создан в том же каталоге, что и данная программа");
         System.out.print("> ");
-        if(userService.newFile(scanner.nextLine().trim())){
+        if (userService.newFile(scanner.nextLine().trim())) {
             System.out.println("Файл успешно создан.");
-        }
-        else {
+        } else {
             System.out.println("Не удалось создать файл.");
         }
     }
 
-    private String commandsMapToString(){
+    private String commandsMapToString() {
         return UIUtils.COMMAND_TO_DESCRIPTION_MAP.entrySet()
                 .stream()
                 .map(commandStringEntry -> String.format("Используйте %s для %s", commandStringEntry.getKey(), commandStringEntry.getValue()))
                 .collect(Collectors.joining(",\n"));
-    }
-
-    private boolean checkFileNotExist(){
-        if (userService.fileNotExist()){
-            LOGGER.logIt(new IllegalStateException("Нет открытого файла"));
-            return true;
-        }
-        return false;
     }
 }
 

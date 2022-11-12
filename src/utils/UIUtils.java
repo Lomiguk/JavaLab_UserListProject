@@ -1,3 +1,7 @@
+package utils;
+
+import api.Command;
+
 import java.util.Map;
 
 public class UIUtils {

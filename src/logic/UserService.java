@@ -1,18 +1,24 @@
+package logic;
+
+import domain.Category;
+import domain.Sex;
+import domain.User;
+import exceptions.IncorrectInputValueException;
+import exceptions.NoneFileException;
+import repository.FileRepository;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class UserService {
-    public static final String FILE_NOT_FOUND = "Нет созданного файлы";
-    public static final String FILE_CANT_BE_CREATED = "Не удалось создать файл!";
     private String filePath = "";
 
-    // How to make final??
-    private LinkedList<User> userList = new LinkedList<>();
-    private final LoggerController LOGGER = new LoggerController(Logger.getGlobal(), this.toString());
-    private final Repository repository = new Repository();
+    private List<User> userList;
+    private final Logger LOGGER = Logger.getLogger(UserService.class.getName());
+    private final FileRepository repository = new FileRepository(new CheckSumService());
 
     public boolean fileNotExist(){
         return !repository.fileExist(filePath);
@@ -49,7 +55,7 @@ public class UserService {
             sex = Sex.valueOf(stringSex.toUpperCase().trim());
         }
         catch(Exception e){
-            LOGGER.logIt(e);
+            LOGGER.log(Level.WARNING, "Failed to read sex", e);
             return null;
         }
 
@@ -64,7 +70,7 @@ public class UserService {
             age = Integer.parseInt(stringAge.trim());
         }
         catch (NumberFormatException e){
-            LOGGER.logIt(e);
+            LOGGER.log(Level.WARNING, "Failed to read age", e);
             return null;
         }
 
@@ -112,50 +118,32 @@ public class UserService {
             isFileCreated = file.createNewFile();
         }
         catch (IOException | SecurityException e) {
-            LOGGER.logIt(e.toString(), e);
         }
 
         if(isFileCreated){
             this.filePath = filePath;
         }
-        else{
-            Exception e = new IllegalStateException(FILE_CANT_BE_CREATED);
-            LOGGER.logIt(e);
-        }
 
         return isFileCreated;
     }
 
-    public boolean addUser(String fio, int age, String phone, String sex, String address){
-
+    public boolean addUser(String fio, int age, String phone, String sex, String address) throws NoneFileException {
         if (fileNotExist()){
-            Exception e = new FileNotFoundException(FILE_NOT_FOUND);
-            LOGGER.logIt(e);
-            return false;
+            throw new NoneFileException("Unsuccessful file create");
         }
 
-        try {
-            return userList.add(new User(fio, age, phone, Sex.valueOf(sex), address));
-        }
-        catch(Exception e){
-            LOGGER.logIt(e.toString(), e);
-        }
-        return false;
+        return userList.add(new User(fio, age, phone, Sex.valueOf(sex), address));
     }
 
-    public Integer tryReadAge(String ageStr) {
+    public Integer tryReadAge(String ageStr) throws IncorrectInputValueException {
         int ageInt;
         try {
             ageInt = Integer.parseInt(ageStr);
 
-            if (ageInt < 0) throw new IncorrectInputValueException("Возраст не может быть меньше 0");
+            if (ageInt < 0) throw new IncorrectInputValueException("Can't be lower then 0");
         }
         catch (NumberFormatException e){
-            LOGGER.logIt("This value can't be converted to integer.", e);
-            return null;
-        }
-        catch (IncorrectInputValueException e) {
-            LOGGER.logIt("Can't be age.", e);
+            LOGGER.log(Level.WARNING, "Failed to format string to age", e);
             return null;
         }
 

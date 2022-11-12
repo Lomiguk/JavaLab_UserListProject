@@ -1,3 +1,5 @@
+package api;
+
 public enum Command {
     LOADFILE, SEARCH, ADDUSER, REMOVEUSER, SAVEFILE, SAVEFILEAS, NEWFILE, EXIT, HELP
 }
