@@ -3,60 +3,73 @@ package ui;
 import api.Command;
 import domain.Category;
 import domain.Sex;
+import domain.User;
+import exceptions.IncorrectCheckSum;
 import exceptions.IncorrectInputValueException;
 import exceptions.NoneFileException;
+import exceptions.RepositoryException;
 import logic.UserService;
 import utils.UIUtils;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ConsoleUI {
+    public static final int MIN_AGE = 14;
     private final UserService userService;
-    private final Scanner scanner = new Scanner(System.in);
+    private final Scanner scanner;
     private final Logger LOGGER = Logger.getLogger(ConsoleUI.class.getName());
 
     private int errorsCount = 0;
     private static final int MAX_ERRORS = 10;
 
-    public ConsoleUI(UserService userService) {
+    public ConsoleUI(UserService userService, InputStream inputStream) {
         this.userService = userService;
+        this.scanner = new Scanner(inputStream);
     }
-
-//    public void start() {
-//        execute();
-//    }
 
     public void start() {
-        try {
-            System.out.printf("Введите команду (%s – %s)%n", Command.HELP, UIUtils.HELP_DESCRIPTION);
-            System.out.print("> ");
-
-            Command command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
-            while (command != Command.EXIT) {
+        Command command = Command.START;
+        while (command != Command.EXIT) {
+            try {
+                command = readCommand();
                 runCommand(command);
-                command = Command.valueOf(scanner.nextLine().trim().toUpperCase());
             }
-        }catch (IllegalArgumentException e){
-            System.out.println("Неверная команда!");
-        }
-        catch (NoSuchElementException | IllegalStateException e){
-            System.out.println("Пустая строка!");
-        }
-        catch (NoneFileException e){
-            System.out.println("Файл не найден");
-        }
-        catch (Exception e) {
-            errorsCount++;
-            if (errorsCount >= MAX_ERRORS) {
-                throw new RuntimeException("Goodbye");
+            catch (IncorrectCheckSum e){
+                LOGGER.log(Level.WARNING, "Не удалось сверить контрольную сумму", e);
+            }
+            catch (IllegalArgumentException | NoSuchElementException | IllegalStateException e){
+                System.out.println("Неверная команда!");
+            }
+            catch(IncorrectInputValueException e){
+                LOGGER.log(Level.WARNING, "Неверное значение", e);
+            }
+            catch (NoneFileException e){
+                LOGGER.log(Level.WARNING, "Файл не найден",e);
+            }
+            catch (RepositoryException e){
+                LOGGER.log(Level.WARNING, "Не удалось считать файл",e);
+            }
+            catch (Exception e) {
+                errorsCount++;
+                LOGGER.log(Level.WARNING, "Вознкла ошибка:",e);
+                if (errorsCount >= MAX_ERRORS) {
+                    throw new RuntimeException(String.format("Произошло слишком много ошибок. Максимальное кол-во ошибок: %n",MAX_ERRORS));
+                }
             }
         }
     }
 
-    private void runCommand(Command command) throws NoneFileException{
+    private Command readCommand(){
+        System.out.printf("Введите команду (%s – %s)%n", Command.HELP, UIUtils.HELP_DESCRIPTION);
+        System.out.print("> ");
+        return Command.valueOf(scanner.nextLine().trim().toUpperCase());
+    }
+
+    private void runCommand(Command command) throws NoneFileException, IncorrectInputValueException, IncorrectCheckSum {
         switch (command) {
             case EXIT:
                 break;
@@ -93,11 +106,10 @@ public class ConsoleUI {
         if (userService.fileNotExist()) return;
 
         System.out.println("На основе какого параметра вы желаете осуществить поиск?");
-        System.out.println("1) Имя (используйте команду NAME)");
-        System.out.println("2) Возраст (используйте команду AGE)");
-        System.out.println("3) Телефон (используйте команду PHONE)");
-        System.out.println("4) Пол (используйте команду SEX)");
-        System.out.println("5) Адресс (используйте команду ADDRESS)");
+        String categories = Arrays.stream(Category.values())
+                .map(it -> String.format("* %s (используйте команлу %s)", it.getKey(), it))
+                .collect(Collectors.joining("\n"));
+        System.out.println(categories);
         System.out.print("> ");
 
         Category category = Category.NAME;
@@ -119,9 +131,9 @@ public class ConsoleUI {
         System.out.printf("Введите %s%n", categoryStr);
         System.out.print("> ");
 
-        Object[] searchedUsers = userService.search(category, scanner.nextLine().toUpperCase());
+        List<User> searchedUsers = userService.search(category, scanner.nextLine().toUpperCase());
 
-        if (searchedUsers == null || searchedUsers.length == 0) {
+        if (searchedUsers == null || searchedUsers.size() == 0) {
             System.out.println("Не было найдено совпадений.");
         } else {
             for (Object user : searchedUsers) {
@@ -140,14 +152,12 @@ public class ConsoleUI {
         userService.removeUser(scanner.nextLine());
     }
 
-    private void loadFile() {
+    private void loadFile() throws IncorrectCheckSum, NoneFileException {
         System.out.println("Введите путь к файлу");
         System.out.print("> ");
-        if (userService.loadFile(scanner.nextLine().trim())) {
-            System.out.println("Файл успешно загружен!");
-        } else {
-            System.out.println("Не удалось загрузить файл!");
-        }
+        userService.loadFile(scanner.nextLine().trim());
+        // Если exception'ы не сработали
+        System.out.println("Файл успешно загружен");
     }
 
     private void saveFile() {
@@ -156,11 +166,9 @@ public class ConsoleUI {
             saveFileAs();
         }
 
-        if (userService.saveFile()) {
-            System.out.println("Файл успешно сохранён!");
-        } else {
-            System.out.println("Не удалось сохранить файл");
-        }
+        userService.saveFile();
+        // Если exception'ы не сработали
+        System.out.println("Файл успешно сохранён!");
     }
 
     private void saveFileAs() {
@@ -171,11 +179,9 @@ public class ConsoleUI {
         if (!userService.fileExist(path)) return;
         if (!askUser("Желаете перезаписать файл?")) return;
 
-        if (userService.saveFileAs(path)) {
-            System.out.println("Файл успешно сохранён!");
-        } else {
-            System.out.println("Не удалось сохранить файл");
-        }
+        userService.saveFileAs(path);
+        // Если exception'ы не сработали
+        System.out.println("Файл успешно сохранён!");
     }
 
     private boolean askUser(String s) {
@@ -192,35 +198,41 @@ public class ConsoleUI {
         System.out.println();
     }
 
-    private void addUser() throws NoneFileException {
+    private void addUser() throws NoneFileException, IncorrectInputValueException {
         if (userService.fileNotExist()) return;
 
         System.out.println("Введите имя");
         System.out.print("> ");
         String fio = scanner.nextLine().trim();
-
         System.out.println("Введите возраст");
-        Integer age = null;
-        while (age == null) {
-            System.out.print("> ");
-            try {
-                age = userService.tryReadAge(scanner.nextLine().trim());
-            } catch (IncorrectInputValueException e) {
-                age = null;
+        System.out.print("> ");
+        Integer age;
+        try{
+            age = scanner.nextInt();
+            if (age < MIN_AGE){
+                throw new Exception();
             }
-
         }
-
+        catch (Exception e){
+            throw new IncorrectInputValueException("Невозможно сохранить как возраст");
+        }
+        scanner.nextLine();
         System.out.println("Введите номер телефона");
         System.out.print("> ");
         String phone = scanner.nextLine().trim();
-
         System.out.println("Выберите пол");
-        System.out.println("1) MALE");
-        System.out.println("2) FEMALE");
+        String sexes = Arrays.stream(Sex.values())
+                .map(it -> String.format("* %s (используйте команлу %s)", it.getKey(), it))
+                .collect(Collectors.joining("\n"));
+        System.out.println(sexes);
         System.out.print("> ");
-        String sex = scanner.nextLine().toUpperCase().trim();
-
+        Sex sex;
+        try{
+            sex = Sex.valueOf(scanner.nextLine().toUpperCase().trim());
+        }
+        catch (Exception e){
+            throw new IncorrectInputValueException("Невполучилось определить пол");
+        }
         System.out.println("Введите адрес");
         System.out.print("> ");
         String address = scanner.nextLine().trim();

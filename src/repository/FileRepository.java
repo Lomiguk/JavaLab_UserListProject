@@ -2,6 +2,9 @@ package repository;
 
 import domain.Sex;
 import domain.User;
+import exceptions.IncorrectCheckSum;
+import exceptions.IncorrectInputValueException;
+import exceptions.NoneFileException;
 import exceptions.RepositoryException;
 import logic.CheckSumService;
 
@@ -20,7 +23,7 @@ public class FileRepository {
         this.checkSumService = checkSumService;
     }
 
-    public boolean saveUserToFile(Collection<User> users, String path){
+    public void saveUserToFile(Collection<User> users, String path){
         try (FileWriter writer = new FileWriter(path, false)){
             writer.write(checkSumService.getUserListHash(users) + "\n");
 
@@ -29,11 +32,9 @@ public class FileRepository {
                 writer.write("\r\n");
             }
             writer.flush();
-
-            return true;
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "failed to save file", e);
-            throw new RepositoryException(e);
+            throw new RepositoryException(e.toString());
         }
     }
 
@@ -41,13 +42,20 @@ public class FileRepository {
         return path.length() != 0 && new File(path).exists();
     }
 
-    public List<User> loadFile(String path) {
+    public List<User> loadFile(String path) throws IncorrectCheckSum, NoneFileException {
         List<User> users = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(path))){
             // Read checksum
-            Long controlCheckSum = Long.parseLong(reader.readLine().trim());
-
+            String checkSumStr = reader.readLine();
+            if (checkSumStr == null || checkSumStr.length() == 0) return users;
+            Long controlCheckSum;
+            try {
+                controlCheckSum = Long.parseLong(checkSumStr);
+            }
+            catch (Exception e){
+                throw new IncorrectCheckSum("Не удалось проверить контрольную сумму");
+            }
             // Read users
             User user = readUser(reader);
             while(user!=null){
@@ -55,13 +63,13 @@ public class FileRepository {
                 user = readUser(reader);
             }
 
-            if (controlCheckSum.equals(checkSumService.getUserListHash(users)))
-                return users;
+            if (!controlCheckSum.equals(checkSumService.getUserListHash(users)))
+                throw new IncorrectCheckSum("Контрольная сумма не совпадает");
+            return users;
         }
         catch (IOException e) {
-            LOGGER.log(Level.WARNING, "failed to load file", e);
+            throw new NoneFileException("Возникла проблема при загрузке файла");
         }
-        return users;
     }
 
     private User readUser(BufferedReader reader) {
@@ -77,9 +85,8 @@ public class FileRepository {
             reader.readLine();
             return new User(name, age, phone, sex, address);
         }
-        catch (IllegalArgumentException | IOException e){
-            LOGGER.log(Level.WARNING, "failed to read user file", e);
-            throw new RepositoryException(e);
+        catch (IllegalArgumentException | IOException | NullPointerException e){
+            return null;
         }
     }
 }

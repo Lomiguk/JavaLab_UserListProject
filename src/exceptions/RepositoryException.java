@@ -1,7 +1,7 @@
 package exceptions;
 
 public class RepositoryException extends RuntimeException {
-    public RepositoryException(Throwable cause) {
+    public RepositoryException(String cause) {
         super(cause);
     }
 }
